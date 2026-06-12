@@ -1,13 +1,13 @@
 ﻿{
   "manifest_version": 3,
-  "name": "Content Blocker",
+  "name": "Web Element Pick Block",
   "version": "1.0.0",
   "description": "屏蔽网页上任意 class/id 的内容。",
   "permissions": ["storage", "scripting", "activeTab"],
   "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Content Blocker"
+    "default_title": "Web Element Pick Block"
   },
   "options_page": "options.html",
   "content_scripts": [

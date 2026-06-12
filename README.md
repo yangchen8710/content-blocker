@@ -1,4 +1,4 @@
-﻿# 🔇 Content Blocker
+﻿# 🔇 Web Element Pick Block
 
 一个 Chrome 浏览器扩展，可以按**站点**屏蔽网页上的任意 class/id 元素，规则持久化保存。
 
