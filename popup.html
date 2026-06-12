@@ -6,7 +6,7 @@
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      width: 360px;
+      width: 380px;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 13px;
       background: #fff;
@@ -51,11 +51,7 @@
     .btn-primary:hover { background: #3b5de7; }
     .btn-secondary { background: #f0f0f0; color: #333; }
     .btn-sm { width: auto; padding: 3px 8px; font-size: 11px; }
-    .btn-row {
-      display: flex;
-      gap: 6px;
-      margin-top: 6px;
-    }
+    .btn-row { display: flex; gap: 6px; margin-top: 6px; }
     .btn-row .btn { flex: 1; margin-top: 0; }
     .btn-warning { background: #e67e22; color: #fff; }
     .btn-warning:hover { background: #d35400; }
@@ -68,15 +64,20 @@
       margin-bottom: 6px;
     }
     .tree-toolbar label {
-      font-size: 11px;
-      color: #666;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      cursor: pointer;
+      font-size: 11px; color: #666;
+      display: flex; align-items: center; gap: 4px; cursor: pointer;
     }
     .tree-toolbar input[type="checkbox"] { width: auto; }
     .tree-toolbar .spacer { flex: 1; }
+
+    .hover-hint {
+      font-size: 9px;
+      color: #3498db;
+      background: #e8f4fd;
+      padding: 2px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
 
     .tree-container {
       max-height: 280px;
@@ -87,53 +88,35 @@
     }
 
     .blocked-summary {
-      font-size: 10px;
-      color: #e74c3c;
-      margin-left: 6px;
-      font-weight: 600;
+      font-size: 10px; color: #e74c3c; margin-left: 6px; font-weight: 600;
     }
 
     .tree-group { border-bottom: 1px solid #eee; }
     .tree-group:last-child { border-bottom: none; }
     .tree-group-header {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
-      background: #f0f3ff;
-      cursor: pointer;
-      user-select: none;
-      font-size: 11px;
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 10px; background: #f0f3ff;
+      cursor: pointer; user-select: none; font-size: 11px;
     }
     .tree-group-header:hover { background: #e4e9ff; }
     .tree-arrow { font-size: 10px; width: 12px; color: #888; }
     .tree-depth-badge {
-      background: #4a6cf7;
-      color: #fff;
-      padding: 1px 5px;
-      border-radius: 3px;
-      font-size: 10px;
-      font-weight: 600;
+      background: #4a6cf7; color: #fff; padding: 1px 5px;
+      border-radius: 3px; font-size: 10px; font-weight: 600;
     }
     .tree-group-info { color: #555; flex: 1; }
     .tree-group-count { color: #999; font-size: 10px; }
-    .tree-blocked-badge {
-      color: #e74c3c;
-      font-size: 10px;
-      font-weight: 600;
-    }
+    .tree-blocked-badge { color: #e74c3c; font-size: 10px; font-weight: 600; }
     .tree-group-body { padding: 0; }
     .tree-group-body.collapsed { display: none; }
 
     .blocked-marker { font-size: 10px; flex-shrink: 0; }
 
     .selector-row {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 10px 4px 22px;
-      border-bottom: 1px solid #f5f5f5;
-      font-size: 11px;
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px 5px 22px;
+      border-bottom: 1px solid #f5f5f5; font-size: 11px;
+      cursor: default;
     }
     .selector-row:last-child { border-bottom: none; }
     .selector-row.previewed { background: #fff9e6; }
@@ -143,95 +126,58 @@
     .selector-row.previewed.highlighted-row { background: #eaf9f0; }
     .selector-row .sel {
       font-family: 'Consolas', 'Monaco', monospace;
-      color: #4a6cf7;
-      word-break: break-all;
-      flex-shrink: 0;
+      color: #4a6cf7; word-break: break-all; flex-shrink: 0;
     }
     .selector-row .sel.sel-blocked {
-      color: #c0392b;
-      text-decoration: line-through;
+      color: #c0392b; text-decoration: line-through;
     }
     .sel-text {
-      font-size: 10px;
-      color: #aaa;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 80px;
-      flex-shrink: 1;
+      font-size: 10px; color: #999;
+      overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; max-width: 130px; flex-shrink: 1;
     }
     .sel-actions {
-      display: flex;
-      gap: 3px;
-      flex-shrink: 0;
-      margin-left: auto;
+      display: flex; gap: 3px; flex-shrink: 0; margin-left: auto;
     }
     .tree-btn {
-      background: none;
-      border: 1px solid #ddd;
-      padding: 2px 6px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 11px;
-      white-space: nowrap;
-      min-width: 24px;
-      text-align: center;
+      background: none; border: 1px solid #ddd; padding: 2px 6px;
+      border-radius: 4px; cursor: pointer; font-size: 11px;
+      white-space: nowrap; min-width: 24px; text-align: center;
     }
     .tree-btn:hover { border-color: #4a6cf7; background: #f0f3ff; }
     .highlight-btn { color: #3498db; border-color: #3498db33; }
     .highlight-btn:hover { border-color: #3498db; background: #e8f4fd; }
     .test-btn { color: #e67e22; }
     .add-btn { color: #27ae60; font-weight: 700; }
-    .badge-added {
-      font-size: 10px;
-      color: #27ae60;
-      white-space: nowrap;
-    }
+    .badge-added { font-size: 10px; color: #27ae60; white-space: nowrap; }
 
-    .tree-node { border-bottom: 1px solid #f0f0f0; }
+    .tree-node { border-bottom: 1px solid #f0f0f0; cursor: default; }
     .tree-node.tree-node-blocked { background: #fff0f0; }
     .tree-node-label {
-      font-size: 11px;
-      padding: 4px 0;
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-      align-items: baseline;
+      font-size: 11px; padding: 4px 0;
+      display: flex; gap: 4px; flex-wrap: wrap; align-items: baseline;
     }
     .tree-node-tag { color: #999; font-family: monospace; font-size: 10px; }
     .tree-node-id { color: #e74c3c; font-family: monospace; font-size: 10px; font-weight: 600; }
     .tree-node-class { color: #4a6cf7; font-family: monospace; font-size: 10px; }
     .tree-node-text {
-      color: #aaa;
-      font-size: 10px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 100px;
+      color: #999; font-size: 10px;
+      overflow: hidden; text-overflow: ellipsis;
+      white-space: nowrap; max-width: 160px;
     }
     .tree-node-actions { padding: 2px 0 6px 0; }
 
     .rule-list { max-height: 150px; overflow-y: auto; }
     .rule-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 5px 8px;
-      background: #f8f8f8;
-      border-radius: 6px;
-      margin-bottom: 4px;
-      font-size: 11px;
-      word-break: break-all;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 5px 8px; background: #f8f8f8;
+      border-radius: 6px; margin-bottom: 4px; font-size: 11px; word-break: break-all;
     }
     .rule-item .sel { font-family: monospace; color: #4a6cf7; }
     .rule-item .actions { display: flex; gap: 3px; flex-shrink: 0; margin-left: 6px; }
     .rule-item button {
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 2px 5px;
-      border-radius: 4px;
-      font-size: 10px;
+      background: none; border: none; cursor: pointer;
+      padding: 2px 5px; border-radius: 4px; font-size: 10px;
     }
     .rule-item .toggle-btn { color: #666; }
     .rule-item .toggle-btn.off { color: #ccc; }
@@ -239,10 +185,7 @@
     .empty { text-align: center; color: #999; font-size: 11px; padding: 20px 0; }
 
     .manual-preview-status {
-      font-size: 10px;
-      color: #e67e22;
-      margin-top: 2px;
-      min-height: 14px;
+      font-size: 10px; color: #e67e22; margin-top: 2px; min-height: 14px;
     }
   </style>
 </head>
@@ -273,7 +216,8 @@
     <div class="divider"></div>
 
     <div class="tree-toolbar">
-      <label>当前页面元素 <span class="blocked-summary" id="blockedBadge" style="display:none"></span></label>
+      <label>页面元素 <span class="blocked-summary" id="blockedBadge" style="display:none"></span></label>
+      <span class="hover-hint" title="鼠标悬停选择器即可在页面上预览对应元素">💡 悬停预览</span>
       <span class="spacer"></span>
       <label title="按层级分组折叠">
         <input type="checkbox" id="groupToggle" checked> 分组

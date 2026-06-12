@@ -1,5 +1,5 @@
 ﻿// popup.js - Content Blocker Popup
-// 按站点管理，支持元素层级树 + 测试/恢复 + 前4文字 + 屏蔽标记 + 高亮
+// 悬停即高亮页面元素，直观定位选择器
 
 let rules = [];
 let currentDomain = '';
@@ -8,7 +8,7 @@ let treeNodes = [];
 let previewedSelectors = new Set();
 let highlightedSelectors = new Set();
 let collapsedGroups = new Set();
-let manualPreviewedSelector = null; // 手动输入区当前在测试的选择器
+let manualPreviewedSelector = null;
 
 // ========== 获取当前标签页信息 ==========
 async function getCurrentTab() {
@@ -39,7 +39,7 @@ async function saveRules() {
   updateBadge(merged);
 }
 
-// ========== 获取当前手动输入的完整选择器 ==========
+// ========== 获取手动输入的完整选择器 ==========
 function getManualSelector() {
   const type = document.getElementById('typeSelect').value;
   const input = document.getElementById('selectorInput').value.trim();
@@ -62,18 +62,14 @@ document.getElementById('addBtn').addEventListener('click', async () => {
   updateManualStatus();
 });
 
-// ========== 手动测试 ==========
+// ========== 手动测试/恢复 ==========
 document.getElementById('manualTestBtn').addEventListener('click', async () => {
   const selector = getManualSelector();
   if (!selector) return;
-
-  // 如果之前有一个在测试，先恢复
   if (manualPreviewedSelector && manualPreviewedSelector !== selector) {
     await restorePreview(manualPreviewedSelector);
   }
-
   if (previewedSelectors.has(selector)) {
-    // 已经在测试中 → 恢复
     await restorePreview(selector);
     manualPreviewedSelector = null;
   } else {
@@ -83,13 +79,8 @@ document.getElementById('manualTestBtn').addEventListener('click', async () => {
   updateManualStatus();
 });
 
-// ========== 手动恢复 ==========
 document.getElementById('manualRestoreBtn').addEventListener('click', async () => {
-  if (manualPreviewedSelector) {
-    await restorePreview(manualPreviewedSelector);
-    manualPreviewedSelector = null;
-  }
-  // 也恢复所有其他预览
+  if (manualPreviewedSelector) { await restorePreview(manualPreviewedSelector); manualPreviewedSelector = null; }
   await restoreAllPreviews();
   updateManualStatus();
   if (treeNodes.length > 0) renderTree();
@@ -108,7 +99,6 @@ function updateManualStatus() {
   }
 }
 
-// 输入变化时重置手动预览状态
 document.getElementById('selectorInput').addEventListener('input', () => {
   if (manualPreviewedSelector && getManualSelector() !== manualPreviewedSelector) {
     restorePreview(manualPreviewedSelector);
@@ -167,10 +157,10 @@ function buildDomTreeFallback() {
     if (depth > MAX_DEPTH || nodes.length >= MAX_NODES) return;
     if (el.nodeType !== 1) return;
     var tag = el.tagName.toLowerCase();
+    if (tag === 'script' || tag === 'style' || tag === 'noscript' || tag === 'meta' || tag === 'link') return;
     var id = el.id || null;
     var classes = el.classList.length > 0 ? Array.from(el.classList) : [];
-    var text = getVisibleText(el, 4);
-    if (tag === 'script' || tag === 'style' || tag === 'noscript' || tag === 'meta' || tag === 'link') return;
+    var text = getVisibleText(el, 20);
     nodes.push({ tag: tag, id: id, classes: classes, text: text, depth: depth, blocked: false });
     for (var j = 0; j < el.children.length; j++) walk(el.children[j], depth + 1);
   }
@@ -182,32 +172,20 @@ function buildDomTreeFallback() {
 function renderTree() {
   const container = document.getElementById('treeContainer');
   const groupToggle = document.getElementById('groupToggle');
-
   if (!treeNodes || treeNodes.length === 0) {
     container.innerHTML = '<div class="empty">未找到元素</div>';
     return;
   }
-
   const blockedCount = treeNodes.filter(n => n.blocked).length;
   const badge = document.getElementById('blockedBadge');
-  if (blockedCount > 0) {
-    badge.textContent = '🚫 ' + blockedCount;
-    badge.style.display = 'inline';
-  } else {
-    badge.style.display = 'none';
-  }
-
-  if (groupToggle.checked) {
-    renderGroupedTree(container);
-  } else {
-    renderFlatTree(container);
-  }
+  if (blockedCount > 0) { badge.textContent = '🚫 ' + blockedCount; badge.style.display = 'inline'; }
+  else { badge.style.display = 'none'; }
+  if (groupToggle.checked) renderGroupedTree(container);
+  else renderFlatTree(container);
 }
 
 function renderGroupedTree(container) {
-  const depthMap = {};
-  const depthTags = {};
-
+  const depthMap = {}, depthTags = {};
   treeNodes.forEach(node => {
     const d = node.depth;
     if (!depthMap[d]) { depthMap[d] = { selectors: new Map(), tags: new Set() }; }
@@ -233,43 +211,36 @@ function renderGroupedTree(container) {
 
   const depths = Object.keys(depthMap).map(Number).sort((a, b) => a - b);
   let html = '';
-
   depths.forEach(depth => {
     const tags = [...(depthTags[depth] || [])].sort();
     const selectors = depthMap[depth].selectors;
     const isCollapsed = collapsedGroups.has('depth-' + depth);
     const blockedInGroup = [...selectors.values()].filter(v => v.blocked).length;
-
-    html += `
-      <div class="tree-group">
-        <div class="tree-group-header" data-depth="${depth}">
-          <span class="tree-arrow">${isCollapsed ? '▸' : '▾'}</span>
-          <span class="tree-depth-badge">L${depth}</span>
-          <span class="tree-group-info">${tags.slice(0, 5).join(', ')}</span>
-          ${blockedInGroup > 0 ? `<span class="tree-blocked-badge">🚫${blockedInGroup}</span>` : ''}
-          <span class="tree-group-count">${selectors.size} 选择器</span>
-        </div>
-        <div class="tree-group-body ${isCollapsed ? 'collapsed' : ''}">`;
-
+    html += `<div class="tree-group">
+      <div class="tree-group-header" data-depth="${depth}">
+        <span class="tree-arrow">${isCollapsed ? '▸' : '▾'}</span>
+        <span class="tree-depth-badge">L${depth}</span>
+        <span class="tree-group-info">${tags.slice(0, 5).join(', ')}</span>
+        ${blockedInGroup > 0 ? `<span class="tree-blocked-badge">🚫${blockedInGroup}</span>` : ''}
+        <span class="tree-group-count">${selectors.size} 选择器</span>
+      </div>
+      <div class="tree-group-body ${isCollapsed ? 'collapsed' : ''}">`;
     if (!isCollapsed) {
       selectors.forEach((entry, sel) => {
         const isAdded = rules.some(r => r.selector === sel);
         const isPreviewed = previewedSelectors.has(sel);
         const isHighlighted = highlightedSelectors.has(sel);
-        const sampleText = [...new Set(entry.texts)].slice(0, 2).join(' / ') || '';
+        const sampleText = [...new Set(entry.texts)].slice(0, 3).join(' · ');
         html += buildSelectorRow(sel, isAdded, isPreviewed, sampleText, entry.blocked, isHighlighted);
       });
     }
-
     html += `</div></div>`;
   });
-
   container.innerHTML = html;
   container.querySelectorAll('.tree-group-header').forEach(header => {
     header.addEventListener('click', () => {
       const depthKey = 'depth-' + header.dataset.depth;
-      if (collapsedGroups.has(depthKey)) collapsedGroups.delete(depthKey);
-      else collapsedGroups.add(depthKey);
+      collapsedGroups.has(depthKey) ? collapsedGroups.delete(depthKey) : collapsedGroups.add(depthKey);
       renderTree();
     });
   });
@@ -284,16 +255,15 @@ function renderFlatTree(container) {
     if (node.id) selectors.push('#' + node.id);
     node.classes.forEach(c => selectors.push('.' + c));
 
-    html += `
-      <div class="tree-node ${node.blocked ? 'tree-node-blocked' : ''}" style="padding-left:${indent + 8}px">
-        <div class="tree-node-label">
-          ${node.blocked ? '<span class="blocked-marker" title="已被屏蔽">🚫</span>' : ''}
-          <span class="tree-node-tag">&lt;${node.tag}&gt;</span>
-          ${node.id ? `<span class="tree-node-id">#${node.id}</span>` : ''}
-          ${node.classes.slice(0, 3).map(c => `<span class="tree-node-class">.${c}</span>`).join(' ')}
-          ${node.text ? `<span class="tree-node-text">"${escapeHtml(node.text)}"</span>` : ''}
-        </div>`;
-
+    html += `<div class="tree-node ${node.blocked ? 'tree-node-blocked' : ''}" style="padding-left:${indent + 8}px"
+      data-hover="${escapeAttr(selectors.join(','))}">
+      <div class="tree-node-label">
+        ${node.blocked ? '<span class="blocked-marker" title="已被屏蔽">🚫</span>' : ''}
+        <span class="tree-node-tag">&lt;${node.tag}&gt;</span>
+        ${node.id ? `<span class="tree-node-id">#${node.id}</span>` : ''}
+        ${node.classes.slice(0, 3).map(c => `<span class="tree-node-class">.${c}</span>`).join(' ')}
+        ${node.text ? `<span class="tree-node-text">"${escapeHtml(node.text)}"</span>` : ''}
+      </div>`;
     if (selectors.length > 0) {
       html += `<div class="tree-node-actions">`;
       selectors.forEach(sel => {
@@ -306,7 +276,6 @@ function renderFlatTree(container) {
     }
     html += `</div>`;
   });
-
   container.innerHTML = html;
   bindSelectorActions(container);
 }
@@ -317,7 +286,7 @@ function buildSelectorRow(sel, isAdded, isPreviewed, textSample, isBlocked, isHi
     actionHtml = '<span class="badge-added">✓</span>';
   } else {
     actionHtml = `
-      <button class="tree-btn highlight-btn" data-highlight="${escapeAttr(sel)}" title="在页面上高亮此元素">
+      <button class="tree-btn highlight-btn" data-highlight="${escapeAttr(sel)}" title="点击固定在页面上高亮">
         ${isHighlighted ? '🔦' : '🔍'}
       </button>
       <button class="tree-btn test-btn" data-test="${escapeAttr(sel)}">
@@ -325,14 +294,16 @@ function buildSelectorRow(sel, isAdded, isPreviewed, textSample, isBlocked, isHi
       </button>
       <button class="tree-btn add-btn" data-add="${escapeAttr(sel)}">＋</button>`;
   }
-  const textPart = textSample ? `<span class="sel-text" title="${escapeAttr(textSample)}">${escapeHtml(textSample)}</span>` : '';
+  const textPart = textSample
+    ? `<span class="sel-text" title="${escapeAttr(textSample)}">${escapeHtml(textSample)}</span>`
+    : '';
   const rowClass = [];
   if (isPreviewed) rowClass.push('previewed');
   if (isBlocked) rowClass.push('blocked-row');
   if (isHighlighted) rowClass.push('highlighted-row');
 
   return `
-    <div class="selector-row ${rowClass.join(' ')}">
+    <div class="selector-row ${rowClass.join(' ')}" data-hover="${escapeAttr(sel)}">
       ${isBlocked ? '<span class="blocked-marker" title="该元素正被屏蔽">🚫</span>' : ''}
       <code class="sel ${isBlocked ? 'sel-blocked' : ''}">${escapeHtml(sel)}</code>
       ${textPart}
@@ -341,6 +312,20 @@ function buildSelectorRow(sel, isAdded, isPreviewed, textSample, isBlocked, isHi
 }
 
 function bindSelectorActions(container) {
+  // ===== 悬停高亮 =====
+  container.querySelectorAll('[data-hover]').forEach(el => {
+    el.addEventListener('mouseenter', async () => {
+      const sel = el.dataset.hover;
+      if (!sel || highlightedSelectors.has(sel)) return;
+      try { await chrome.tabs.sendMessage(currentTabId, { action: 'hoverOn', selector: sel }); } catch (e) {}
+    });
+    el.addEventListener('mouseleave', async () => {
+      const sel = el.dataset.hover;
+      if (!sel || highlightedSelectors.has(sel)) return;
+      try { await chrome.tabs.sendMessage(currentTabId, { action: 'hoverOff' }); } catch (e) {}
+    });
+  });
+
   container.querySelectorAll('.highlight-btn').forEach(btn => {
     btn.addEventListener('click', async (e) => {
       e.stopPropagation();
@@ -397,13 +382,7 @@ async function testPreview(selector) {
     await chrome.tabs.sendMessage(currentTabId, { action: 'preview', selector });
     previewedSelectors.add(selector);
   } catch (e) {
-    try {
-      await chrome.scripting.insertCSS({
-        target: { tabId: currentTabId },
-        css: `${selector}{display:none!important;visibility:hidden!important;}`
-      });
-      previewedSelectors.add(selector);
-    } catch (e2) {}
+    try { await chrome.scripting.insertCSS({ target: { tabId: currentTabId }, css: `${selector}{display:none!important;visibility:hidden!important;}` }); previewedSelectors.add(selector); } catch (e2) {}
   }
 }
 
@@ -419,6 +398,7 @@ async function restoreAllPreviews() {
   previewedSelectors.clear();
 }
 
+// ========== 恢复全部 ==========
 document.getElementById('groupToggle').addEventListener('change', () => renderTree());
 document.getElementById('restoreAllBtn').addEventListener('click', async () => {
   await restoreAllPreviews();
@@ -428,14 +408,16 @@ document.getElementById('restoreAllBtn').addEventListener('click', async () => {
   renderTree();
 });
 
-// ========== 渲染当前站点规则 ==========
+// popup 关闭时清理悬停高亮
+window.addEventListener('unload', async () => {
+  try { await chrome.tabs.sendMessage(currentTabId, { action: 'hoverOff' }); } catch (e) {}
+});
+
+// ========== 渲染规则列表 ==========
 function renderRules() {
   const list = document.getElementById('ruleList');
   document.getElementById('ruleCount').textContent = rules.length;
-  if (rules.length === 0) {
-    list.innerHTML = '<div class="empty">暂无规则</div>';
-    return;
-  }
+  if (rules.length === 0) { list.innerHTML = '<div class="empty">暂无规则</div>'; return; }
   list.innerHTML = rules.map(r => `
     <div class="rule-item">
       <span class="sel" style="${r.enabled === false ? 'text-decoration:line-through;color:#ccc' : ''}">${r.selector}</span>
@@ -459,7 +441,6 @@ function renderRules() {
   });
 }
 
-// ========== 徽标 ==========
 function updateBadge(allRules) {
   const activeCount = allRules.filter(r => r.enabled !== false).length;
   chrome.action.setBadgeText({ text: activeCount > 0 ? String(activeCount) : '' });
@@ -468,18 +449,7 @@ function updateBadge(allRules) {
 
 document.getElementById('openOptions').addEventListener('click', () => chrome.runtime.openOptionsPage());
 
-// ========== 工具 ==========
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-function escapeAttr(str) {
-  return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+function escapeHtml(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML; }
+function escapeAttr(str) { return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
 
-// ========== 初始化 ==========
-(async () => {
-  await getCurrentTab();
-  await loadRules();
-})();
+(async () => { await getCurrentTab(); await loadRules(); })();
