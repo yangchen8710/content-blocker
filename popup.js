@@ -451,7 +451,7 @@ function renderRules() {
 }
 
 function updateBadge(allRules) {
-  const activeCount = allRules.filter(r => r.enabled !== false).length;
+  const activeCount = allRules.filter(r => r.enabled !== false && r.domain === currentDomain).length;
   chrome.action.setBadgeText({ text: activeCount > 0 ? String(activeCount) : '' });
   chrome.action.setBadgeBackgroundColor({ color: '#4a6cf7' });
 }
