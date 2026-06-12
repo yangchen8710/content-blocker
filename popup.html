@@ -1,0 +1,299 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Content Blocker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 360px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 13px;
+      background: #fff;
+      color: #333;
+    }
+    .header {
+      background: #4a6cf7;
+      color: #fff;
+      padding: 10px 14px;
+      font-size: 15px;
+      font-weight: 600;
+    }
+    .domain-badge {
+      font-size: 10px;
+      opacity: 0.85;
+      font-weight: 400;
+      margin-top: 1px;
+    }
+    .content { padding: 10px 14px; }
+    .form-group { margin-bottom: 8px; }
+    label { display: block; font-size: 11px; color: #888; margin-bottom: 3px; }
+    input, select {
+      width: 100%;
+      padding: 7px 9px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 12px;
+      outline: none;
+    }
+    input:focus, select:focus { border-color: #4a6cf7; }
+    .btn {
+      width: 100%;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 3px;
+    }
+    .btn-primary { background: #4a6cf7; color: #fff; }
+    .btn-primary:hover { background: #3b5de7; }
+    .btn-secondary { background: #f0f0f0; color: #333; }
+    .btn-sm { width: auto; padding: 3px 8px; font-size: 11px; }
+    .btn-row {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .btn-row .btn { flex: 1; margin-top: 0; }
+    .btn-warning { background: #e67e22; color: #fff; }
+    .btn-warning:hover { background: #d35400; }
+    .divider { border-top: 1px solid #eee; margin: 10px 0; }
+
+    .tree-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+    .tree-toolbar label {
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .tree-toolbar input[type="checkbox"] { width: auto; }
+    .tree-toolbar .spacer { flex: 1; }
+
+    .tree-container {
+      max-height: 280px;
+      overflow-y: auto;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      background: #fafafa;
+    }
+
+    .blocked-summary {
+      font-size: 10px;
+      color: #e74c3c;
+      margin-left: 6px;
+      font-weight: 600;
+    }
+
+    .tree-group { border-bottom: 1px solid #eee; }
+    .tree-group:last-child { border-bottom: none; }
+    .tree-group-header {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: #f0f3ff;
+      cursor: pointer;
+      user-select: none;
+      font-size: 11px;
+    }
+    .tree-group-header:hover { background: #e4e9ff; }
+    .tree-arrow { font-size: 10px; width: 12px; color: #888; }
+    .tree-depth-badge {
+      background: #4a6cf7;
+      color: #fff;
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .tree-group-info { color: #555; flex: 1; }
+    .tree-group-count { color: #999; font-size: 10px; }
+    .tree-blocked-badge {
+      color: #e74c3c;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .tree-group-body { padding: 0; }
+    .tree-group-body.collapsed { display: none; }
+
+    .blocked-marker { font-size: 10px; flex-shrink: 0; }
+
+    .selector-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px 4px 22px;
+      border-bottom: 1px solid #f5f5f5;
+      font-size: 11px;
+    }
+    .selector-row:last-child { border-bottom: none; }
+    .selector-row.previewed { background: #fff9e6; }
+    .selector-row.blocked-row { background: #fff0f0; }
+    .selector-row.highlighted-row { background: #e8f4fd; }
+    .selector-row.previewed.blocked-row { background: #fff5e6; }
+    .selector-row.previewed.highlighted-row { background: #eaf9f0; }
+    .selector-row .sel {
+      font-family: 'Consolas', 'Monaco', monospace;
+      color: #4a6cf7;
+      word-break: break-all;
+      flex-shrink: 0;
+    }
+    .selector-row .sel.sel-blocked {
+      color: #c0392b;
+      text-decoration: line-through;
+    }
+    .sel-text {
+      font-size: 10px;
+      color: #aaa;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 80px;
+      flex-shrink: 1;
+    }
+    .sel-actions {
+      display: flex;
+      gap: 3px;
+      flex-shrink: 0;
+      margin-left: auto;
+    }
+    .tree-btn {
+      background: none;
+      border: 1px solid #ddd;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+      min-width: 24px;
+      text-align: center;
+    }
+    .tree-btn:hover { border-color: #4a6cf7; background: #f0f3ff; }
+    .highlight-btn { color: #3498db; border-color: #3498db33; }
+    .highlight-btn:hover { border-color: #3498db; background: #e8f4fd; }
+    .test-btn { color: #e67e22; }
+    .add-btn { color: #27ae60; font-weight: 700; }
+    .badge-added {
+      font-size: 10px;
+      color: #27ae60;
+      white-space: nowrap;
+    }
+
+    .tree-node { border-bottom: 1px solid #f0f0f0; }
+    .tree-node.tree-node-blocked { background: #fff0f0; }
+    .tree-node-label {
+      font-size: 11px;
+      padding: 4px 0;
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+      align-items: baseline;
+    }
+    .tree-node-tag { color: #999; font-family: monospace; font-size: 10px; }
+    .tree-node-id { color: #e74c3c; font-family: monospace; font-size: 10px; font-weight: 600; }
+    .tree-node-class { color: #4a6cf7; font-family: monospace; font-size: 10px; }
+    .tree-node-text {
+      color: #aaa;
+      font-size: 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 100px;
+    }
+    .tree-node-actions { padding: 2px 0 6px 0; }
+
+    .rule-list { max-height: 150px; overflow-y: auto; }
+    .rule-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 8px;
+      background: #f8f8f8;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      font-size: 11px;
+      word-break: break-all;
+    }
+    .rule-item .sel { font-family: monospace; color: #4a6cf7; }
+    .rule-item .actions { display: flex; gap: 3px; flex-shrink: 0; margin-left: 6px; }
+    .rule-item button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 10px;
+    }
+    .rule-item .toggle-btn { color: #666; }
+    .rule-item .toggle-btn.off { color: #ccc; }
+    .rule-item .del-btn { color: #e74c3c; }
+    .empty { text-align: center; color: #999; font-size: 11px; padding: 20px 0; }
+
+    .manual-preview-status {
+      font-size: 10px;
+      color: #e67e22;
+      margin-top: 2px;
+      min-height: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    🔇 Content Blocker
+    <div class="domain-badge" id="domainLabel">...</div>
+  </div>
+  <div class="content">
+    <div class="form-group">
+      <label>选择器 (如 .ad, #sidebar)</label>
+      <input type="text" id="selectorInput" placeholder="输入 class 或 id...">
+      <div class="manual-preview-status" id="manualPreviewStatus"></div>
+    </div>
+    <div class="form-group">
+      <select id="typeSelect">
+        <option value=".">class ( . )</option>
+        <option value="#">id ( # )</option>
+        <option value="">直接输入</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" id="addBtn">添加规则（仅当前站点）</button>
+    <div class="btn-row">
+      <button class="btn btn-warning" id="manualTestBtn">👁 测试</button>
+      <button class="btn btn-secondary" id="manualRestoreBtn">🔄 恢复</button>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="tree-toolbar">
+      <label>当前页面元素 <span class="blocked-summary" id="blockedBadge" style="display:none"></span></label>
+      <span class="spacer"></span>
+      <label title="按层级分组折叠">
+        <input type="checkbox" id="groupToggle" checked> 分组
+      </label>
+      <button class="btn btn-sm btn-secondary" id="restoreAllBtn">恢复全部</button>
+    </div>
+    <div class="tree-container" id="treeContainer">
+      <div class="empty">点击下方按钮扫描页面</div>
+    </div>
+    <button class="btn btn-secondary" id="scanBtn">🔍 扫描页面元素</button>
+
+    <div class="divider"></div>
+
+    <label>当前站点规则 (<span id="ruleCount">0</span>)</label>
+    <div class="rule-list" id="ruleList">
+      <div class="empty">暂无规则</div>
+    </div>
+    <button class="btn btn-secondary" id="openOptions">⚙ 管理所有站点规则</button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
