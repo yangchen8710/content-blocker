@@ -45,8 +45,17 @@ function getManualSelector() {
   const input = document.getElementById('selectorInput').value.trim();
   if (!input) return null;
   let selector;
-  if (type === '') { selector = input; }
-  else { const clean = input.replace(/^[.#]/, ''); selector = type + clean; }
+  if (type === '') {
+    selector = input;
+  } else if (type === 'tag') {
+    selector = input.replace(/^[.#]/, '');
+  } else if (type === 'attr') {
+    const clean = input.replace(/^\[|\]$/g, '');
+    selector = '[' + clean + ']';
+  } else {
+    const clean = input.replace(/^[.#]/, '');
+    selector = type + clean;
+  }
   return selector;
 }
 
